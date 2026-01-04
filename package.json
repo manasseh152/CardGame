@@ -1,0 +1,24 @@
+{
+  "name": "cardgame",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts",
+    "multiplayer": "bun run src/multiplayer.ts",
+    "multiplayer:dev": "bun run --watch src/multiplayer.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "nanoid": "^5.1.6",
+    "zod": "^4.3.4"
+  }
+}
