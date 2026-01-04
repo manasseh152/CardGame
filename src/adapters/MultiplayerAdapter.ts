@@ -386,6 +386,27 @@ export class MultiplayerAdapter {
         }
     }
 
+    /**
+     * Cancel any pending prompt for a session (used when player leaves room voluntarily)
+     */
+    cancelPendingPrompt(sessionId: SessionId): void {
+        const resolver = this.promptResolvers.get(sessionId);
+        if (resolver) {
+            resolver({ cancel: true });
+            this.promptResolvers.delete(sessionId);
+        }
+    }
+
+    /**
+     * Cancel any pending prompt for a player by their playerId
+     */
+    cancelPendingPromptForPlayer(playerId: PlayerId): void {
+        const connection = this.getConnectionByPlayerId(playerId);
+        if (connection) {
+            this.cancelPendingPrompt(connection.sessionId);
+        }
+    }
+
     // ========================================================================
     // Sending Messages
     // ========================================================================

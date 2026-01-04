@@ -303,6 +303,9 @@ export class RoomManager {
             return false;
         }
 
+        // Cancel any pending prompts for this player (important for voluntary leave during game)
+        this.multiplayerAdapter.cancelPendingPrompt(player.sessionId);
+
         // Remove player
         room.players.delete(playerId);
         this.playerRooms.delete(playerId);
@@ -358,12 +361,8 @@ export class RoomManager {
         const game = room.game;
         if (!game) return;
 
-        // Find the player in the game by matching playerId
-        const gamePlayerIndex = game.players.findIndex(p => {
-            // Match by playerId if available, otherwise by name
-            const roomPlayer = Array.from(room.players.values()).find(rp => rp.name === p.name);
-            return roomPlayer?.playerId === playerId || p.name === playerName;
-        });
+        // Find the player in the game by name
+        const gamePlayerIndex = game.players.findIndex(p => p.name === playerName);
 
         if (gamePlayerIndex === -1) return;
 
