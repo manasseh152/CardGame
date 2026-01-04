@@ -1,0 +1,78 @@
+{"type":"connected","adapter":"jsonl"}
+{"type":"intro","message":"Card Game Console"}
+{"type":"log","level":"info","message":"Add players before starting the game."}
+{"type":"note","title":"Current Players","content":"No players added yet"}
+{"type":"log","level":"info","message":"[PROMPT:select] What would you like to do? [Add Player, Quit]"}
+{"type":"log","level":"info","message":"[RESPONSE:select] Add Player"}
+{"type":"log","level":"info","message":"[PROMPT:text] Enter player name:"}
+{"type":"log","level":"info","message":"[RESPONSE:text] John"}
+{"type":"log","level":"info","message":"[PROMPT:text] Starting chips:"}
+{"type":"log","level":"info","message":"[RESPONSE:text] 1000"}
+{"type":"log","level":"success","message":"Added player John with 1000 chips."}
+{"type":"note","title":"Current Players","content":"  1. John — 1000 chips"}
+{"type":"log","level":"info","message":"[PROMPT:select] What would you like to do? [Add Player, Remove Player, Set Chips, Start Game, Quit]"}
+{"type":"log","level":"info","message":"[RESPONSE:select] Add Player"}
+{"type":"log","level":"info","message":"[PROMPT:text] Enter player name:"}
+{"type":"log","level":"info","message":"[RESPONSE:text] Jane"}
+{"type":"log","level":"info","message":"[PROMPT:text] Starting chips:"}
+{"type":"log","level":"info","message":"[RESPONSE:text] 1000"}
+{"type":"log","level":"success","message":"Added player Jane with 1000 chips."}
+{"type":"note","title":"Current Players","content":"  1. John — 1000 chips\n  2. Jane — 1000 chips"}
+{"type":"log","level":"info","message":"[PROMPT:select] What would you like to do? [Add Player, Remove Player, Set Chips, Start Game, Quit]"}
+{"type":"log","level":"info","message":"[RESPONSE:select] Start Game"}
+{"type":"log","level":"success","message":"Starting the game!"}
+{"type":"note","title":"Current Players","content":"  1. John — 1000 chips\n  2. Jane — 1000 chips"}
+{"type":"log","level":"info","message":"Welcome to Blackjack! Try to beat the dealer without going over 21."}
+{"type":"note","title":"Blackjack — BETTING","content":"Dealer:  (0)\n---------------------------------------------\n> John:  (0) | $0 bet | $1000 chips | playing\n  Jane:  (0) | $0 bet | $1000 chips | playing"}
+{"type":"log","level":"message","message":"Place your bets!"}
+{"type":"log","level":"info","message":"[PROMPT:text] John, enter your bet (chips: 1000):"}
+{"type":"log","level":"info","message":"[RESPONSE:text] 100"}
+{"type":"note","title":"Blackjack — BETTING","content":"Dealer:  (0)\n---------------------------------------------\n> John:  (0) | $100 bet | $900 chips | playing\n  Jane:  (0) | $0 bet | $1000 chips | playing"}
+{"type":"log","level":"message","message":"John bets 100 chips."}
+{"type":"log","level":"info","message":"[PROMPT:text] Jane, enter your bet (chips: 1000):"}
+{"type":"log","level":"info","message":"[RESPONSE:text] 100"}
+{"type":"note","title":"Blackjack — PLAYER TURN","content":"Dealer: K♥ [?] (?)\n---------------------------------------------\n> John: 6♣ 3♠ (9) | $100 bet | $900 chips | playing\n  Jane: K♦ 9♠ (19) | $100 bet | $900 chips | playing"}
+{"type":"log","level":"message","message":"Jane bets 100 chips."}
+{"type":"log","level":"info","message":"[PROMPT:select] John's turn (Hand: 9): [Hit, Stand, Double Down, Quit]"}
+{"type":"log","level":"info","message":"[RESPONSE:select] Hit"}
+{"type":"note","title":"Blackjack — PLAYER TURN","content":"Dealer: K♥ [?] (?)\n---------------------------------------------\n> John: 6♣ 3♠ Q♣ (19) | $100 bet | $900 chips | playing\n  Jane: K♦ 9♠ (19) | $100 bet | $900 chips | playing"}
+{"type":"log","level":"message","message":"John hits. Hand value: 19"}
+{"type":"log","level":"info","message":"[PROMPT:select] John's turn (Hand: 19): [Hit, Stand, Quit]"}
+{"type":"log","level":"info","message":"[RESPONSE:select] Stand"}
+{"type":"note","title":"Blackjack — PLAYER TURN","content":"Dealer: K♥ [?] (?)\n---------------------------------------------\n  John: 6♣ 3♠ Q♣ (19) | $100 bet | $900 chips | stay\n> Jane: K♦ 9♠ (19) | $100 bet | $900 chips | playing"}
+{"type":"log","level":"message","message":"John stands on 19."}
+{"type":"log","level":"info","message":"[PROMPT:select] Jane's turn (Hand: 19): [Hit, Stand, Double Down, Quit]"}
+{"type":"log","level":"info","message":"[RESPONSE:select] Stand"}
+{"type":"note","title":"Blackjack — ROUND OVER","content":"Dealer: K♥ 5♠ 4♦ (19)\n---------------------------------------------\n  John: 6♣ 3♠ Q♣ (19) | $100 bet | $1000 chips | stay\n  Jane: K♦ 9♠ (19) | $100 bet | $1000 chips | stay"}
+{"type":"log","level":"message","message":"Dealer stands on 19."}
+{"type":"note","title":"Round Results","content":"Dealer: K♥ 5♠ 4♦ (19) — stay\n----------------------------------------\nJohn: Push — Now has $1000 chips\nJane: Push — Now has $1000 chips"}
+{"type":"log","level":"info","message":"[PROMPT:select] What next? [New Round, Quit]"}
+{"type":"log","level":"info","message":"[RESPONSE:select] New Round"}
+{"type":"note","title":"Blackjack — BETTING","content":"Dealer:  (0)\n---------------------------------------------\n> John:  (0) | $0 bet | $1000 chips | playing\n  Jane:  (0) | $0 bet | $1000 chips | playing"}
+{"type":"log","level":"message","message":"Place your bets!"}
+{"type":"log","level":"info","message":"[PROMPT:text] John, enter your bet (chips: 1000):"}
+{"type":"log","level":"info","message":"[RESPONSE:text] 100"}
+{"type":"note","title":"Blackjack — BETTING","content":"Dealer:  (0)\n---------------------------------------------\n> John:  (0) | $100 bet | $900 chips | playing\n  Jane:  (0) | $0 bet | $1000 chips | playing"}
+{"type":"log","level":"message","message":"John bets 100 chips."}
+{"type":"log","level":"info","message":"[PROMPT:text] Jane, enter your bet (chips: 1000):"}
+{"type":"log","level":"info","message":"[RESPONSE:text] 100"}
+{"type":"note","title":"Blackjack — PLAYER TURN","content":"Dealer: A♥ [?] (?)\n---------------------------------------------\n> John: 9♣ 6♦ (15) | $100 bet | $900 chips | playing\n  Jane: 8♥ 5♥ (13) | $100 bet | $900 chips | playing"}
+{"type":"log","level":"message","message":"Jane bets 100 chips."}
+{"type":"log","level":"info","message":"[PROMPT:select] John's turn (Hand: 15): [Hit, Stand, Double Down, Quit]"}
+{"type":"log","level":"info","message":"[RESPONSE:select] Hit"}
+{"type":"note","title":"Blackjack — PLAYER TURN","content":"Dealer: A♥ [?] (?)\n---------------------------------------------\n> John: 9♣ 6♦ 2♥ (17) | $100 bet | $900 chips | playing\n  Jane: 8♥ 5♥ (13) | $100 bet | $900 chips | playing"}
+{"type":"log","level":"message","message":"John hits. Hand value: 17"}
+{"type":"log","level":"info","message":"[PROMPT:select] John's turn (Hand: 17): [Hit, Stand, Quit]"}
+{"type":"log","level":"info","message":"[RESPONSE:select] Stand"}
+{"type":"note","title":"Blackjack — PLAYER TURN","content":"Dealer: A♥ [?] (?)\n---------------------------------------------\n  John: 9♣ 6♦ 2♥ (17) | $100 bet | $900 chips | stay\n> Jane: 8♥ 5♥ (13) | $100 bet | $900 chips | playing"}
+{"type":"log","level":"message","message":"John stands on 17."}
+{"type":"log","level":"info","message":"[PROMPT:select] Jane's turn (Hand: 13): [Hit, Stand, Double Down, Quit]"}
+{"type":"log","level":"info","message":"[RESPONSE:select] Hit"}
+{"type":"note","title":"Blackjack — ROUND OVER","content":"Dealer: A♥ 8♦ (19)\n---------------------------------------------\n  John: 9♣ 6♦ 2♥ (17) | $100 bet | $900 chips | stay\n  Jane: 8♥ 5♥ Q♥ (23) | $100 bet | $900 chips | bust"}
+{"type":"log","level":"message","message":"Dealer stands on 19."}
+{"type":"note","title":"Round Results","content":"Dealer: A♥ 8♦ (19) — stay\n----------------------------------------\nJohn: -$100 — Now has $900 chips\nJane: -$100 — Now has $900 chips"}
+{"type":"log","level":"info","message":"[PROMPT:select] What next? [New Round, Quit]"}
+{"type":"log","level":"warning","message":"[RESPONSE:select] cancelled"}
+{"type":"note","title":"Final Standings","content":"1st John: $900 chips\n2nd Jane: $900 chips"}
+{"type":"outro","message":"Thanks for playing!"}
+{"type":"disconnected","adapter":"jsonl"}
