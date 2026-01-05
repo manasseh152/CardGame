@@ -12,12 +12,17 @@
 import { MultiplayerAdapter } from './adapters/MultiplayerAdapter';
 import { RoomManager } from './game/RoomManager';
 
-// Parse CLI arguments
+// Import games to trigger auto-registration with the gameRegistry
+import './game/BlackjackGame';
+
+// Parse CLI arguments and environment variables
 function parseArgs(): { port: number; hostname: string } {
     const args = process.argv.slice(2);
-    let port = 3000;
-    let hostname = 'localhost';
+    // Default to environment variables, fallback to defaults
+    let port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+    let hostname = process.env.HOSTNAME || 'localhost';
 
+    // CLI arguments override environment variables
     for (const arg of args) {
         if (arg.startsWith('--port=')) {
             port = parseInt(arg.slice('--port='.length), 10);
