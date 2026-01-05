@@ -121,6 +121,14 @@ export function createAdapter(config: ExtendedAdapterConfig | AdapterType): IOAd
  */
 export function parseAdapterFromArgs(args: string[] = process.argv.slice(2)): ExtendedAdapterConfig {
     const config: ExtendedAdapterConfig = { type: 'clack' };
+    
+    // Set defaults from environment variables
+    if (process.env.PORT) {
+        config.port = parseInt(process.env.PORT, 10);
+    }
+    if (process.env.HOSTNAME) {
+        config.hostname = process.env.HOSTNAME;
+    }
 
     for (let i = 0; i < args.length; i++) {
         const arg = args[i]!;

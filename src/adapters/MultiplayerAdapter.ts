@@ -43,6 +43,10 @@ export interface RoomListMessage extends ClientMessage {
     type: 'room_list';
 }
 
+export interface GameListMessage extends ClientMessage {
+    type: 'game_list';
+}
+
 export interface RoomCreateMessage extends ClientMessage {
     type: 'room_create';
     name?: string;
@@ -51,6 +55,8 @@ export interface RoomCreateMessage extends ClientMessage {
     minBet?: number;
     maxBet?: number;
     deckCount?: number;
+    /** The type of game to play in this room (defaults to 'blackjack') */
+    gameType?: string;
 }
 
 export interface RoomJoinMessage extends ClientMessage {
@@ -114,6 +120,8 @@ export interface RoomInfo {
     maxPlayers: number;
     isPrivate: boolean;
     isPlaying: boolean;
+    /** The type of game this room is playing */
+    gameType?: string;
 }
 
 // ============================================================================
@@ -123,6 +131,7 @@ export interface RoomInfo {
 export interface MultiplayerEventHandlers {
     onPlayerIdentified?: (sessionId: SessionId, playerId: PlayerId, name: string) => void;
     onRoomListRequested?: (sessionId: SessionId) => void;
+    onGameListRequested?: (sessionId: SessionId) => void;
     onRoomCreate?: (sessionId: SessionId, settings: RoomCreateMessage) => void;
     onRoomJoin?: (sessionId: SessionId, roomId: string) => void;
     onRoomLeave?: (sessionId: SessionId) => void;
@@ -299,6 +308,11 @@ export class MultiplayerAdapter {
                 break;
             }
 
+            case 'game_list': {
+                this.eventHandlers.onGameListRequested?.(sessionId);
+                break;
+            }
+
             case 'room_create': {
                 const msg = data as RoomCreateMessage;
                 this.eventHandlers.onRoomCreate?.(sessionId, msg);
@@ -448,6 +462,13 @@ export class MultiplayerAdapter {
         this.sendTo(sessionId, {
             type: 'room_list',
             rooms,
+        });
+    }
+
+    sendGameList(sessionId: SessionId, games: unknown[]): void {
+        this.sendTo(sessionId, {
+            type: 'game_list',
+            games,
         });
     }
 
