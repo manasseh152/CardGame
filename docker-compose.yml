@@ -1,0 +1,40 @@
+services:
+  multiplayer:
+    build:
+      context: .
+      dockerfile: Dockerfile.multiplayer
+    container_name: cardgame-multiplayer
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for hot reload (optional, remove if not needed)
+      - ./src:/app/src
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+    networks:
+      - cardgame-network
+
+  vite:
+    build:
+      context: .
+      dockerfile: Dockerfile.vite
+    container_name: cardgame-vite
+    ports:
+      - "5173:5173"
+    volumes:
+      # Mount source code for hot reload
+      - ./card-game-poc:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - multiplayer
+    restart: unless-stopped
+    networks:
+      - cardgame-network
+
+networks:
+  cardgame-network:
+    driver: bridge
+
