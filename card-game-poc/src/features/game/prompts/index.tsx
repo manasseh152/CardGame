@@ -9,19 +9,25 @@ interface PromptPanelProps {
     onSubmit: (value: unknown) => void;
     onCancel: () => void;
     className?: string;
+    compact?: boolean;
 }
 
-export function PromptPanel({ prompt, onSubmit, onCancel, className }: PromptPanelProps) {
+export function PromptPanel({ prompt, onSubmit, onCancel, className, compact = false }: PromptPanelProps) {
     if (!prompt) {
         return (
-            <div className={cn("flex items-center justify-center py-8 text-muted-foreground/50", className)}>
-                <p className="text-sm">Waiting for game input...</p>
+            <div className={cn(
+                "flex items-center justify-center text-muted-foreground/50",
+                compact ? "py-4" : "py-8",
+                className
+            )}>
+                <p className={cn("text-sm", compact && "text-xs")}>Waiting for game input...</p>
             </div>
         );
     }
 
     const commonProps = {
         onCancel,
+        compact,
         className: "animate-in fade-in slide-in-from-bottom-2 duration-300",
     };
 

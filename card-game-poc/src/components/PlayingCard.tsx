@@ -18,22 +18,31 @@ const SUIT_COLORS: Record<CardState['suit'], string> = {
 interface PlayingCardProps {
     card: CardState;
     className?: string;
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'xs' | 'sm' | 'md' | 'lg';
     animate?: boolean;
     style?: React.CSSProperties;
 }
 
 export function PlayingCard({ card, className, size = 'md', animate = false, style }: PlayingCardProps) {
     const sizeClasses = {
+        xs: 'w-9 h-[3.25rem] text-[10px]',
         sm: 'w-12 h-[4.5rem] text-sm',
         md: 'w-16 h-24 text-base',
         lg: 'w-20 h-[7.5rem] text-lg',
     };
 
     const suitSize = {
+        xs: 'text-sm',
         sm: 'text-lg',
         md: 'text-2xl',
         lg: 'text-3xl',
+    };
+
+    const centerSuitSize = {
+        xs: 'text-xl',
+        sm: 'text-3xl',
+        md: 'text-4xl',
+        lg: 'text-5xl',
     };
 
     if (card.hidden) {
@@ -41,7 +50,7 @@ export function PlayingCard({ card, className, size = 'md', animate = false, sty
             <div
                 className={cn(
                     sizeClasses[size],
-                    'rounded-lg shadow-lg flex items-center justify-center',
+                    'rounded-md sm:rounded-lg shadow-lg flex items-center justify-center',
                     'bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900',
                     'border-2 border-blue-400/50',
                     'relative overflow-hidden',
@@ -51,7 +60,10 @@ export function PlayingCard({ card, className, size = 'md', animate = false, sty
                 style={style}
             >
                 {/* Card back pattern */}
-                <div className="absolute inset-1 rounded border border-blue-400/30">
+                <div className={cn(
+                    "absolute rounded border border-blue-400/30",
+                    size === 'xs' ? 'inset-0.5' : 'inset-1'
+                )}>
                     <div className="absolute inset-0 opacity-20">
                         <div className="w-full h-full" style={{
                             backgroundImage: `repeating-linear-gradient(
@@ -64,7 +76,10 @@ export function PlayingCard({ card, className, size = 'md', animate = false, sty
                         }} />
                     </div>
                 </div>
-                <span className="text-blue-200/60 text-2xl font-bold">?</span>
+                <span className={cn(
+                    "text-blue-200/60 font-bold",
+                    size === 'xs' ? 'text-lg' : 'text-2xl'
+                )}>?</span>
             </div>
         );
     }
@@ -76,7 +91,7 @@ export function PlayingCard({ card, className, size = 'md', animate = false, sty
         <div
             className={cn(
                 sizeClasses[size],
-                'rounded-lg shadow-lg flex flex-col',
+                'rounded-md sm:rounded-lg shadow-lg flex flex-col',
                 'bg-gradient-to-br from-white via-gray-50 to-gray-100',
                 'border border-gray-200',
                 'relative overflow-hidden',
@@ -86,24 +101,30 @@ export function PlayingCard({ card, className, size = 'md', animate = false, sty
             style={style}
         >
             {/* Top left corner */}
-            <div className={cn('absolute top-1 left-1.5 flex flex-col items-center leading-none', colorClass)}>
+            <div className={cn(
+                'absolute flex flex-col items-center leading-none',
+                size === 'xs' ? 'top-0.5 left-0.5' : 'top-1 left-1.5',
+                colorClass
+            )}>
                 <span className="font-bold">{card.rank}</span>
-                <span className={cn(suitSize[size], '-mt-1')}>{symbol}</span>
+                <span className={cn(suitSize[size], size === 'xs' ? '-mt-0.5' : '-mt-1')}>{symbol}</span>
             </div>
 
             {/* Center suit */}
             <div className={cn('flex-1 flex items-center justify-center', colorClass)}>
-                <span className={cn(
-                    size === 'sm' ? 'text-3xl' : size === 'md' ? 'text-4xl' : 'text-5xl'
-                )}>
+                <span className={centerSuitSize[size]}>
                     {symbol}
                 </span>
             </div>
 
             {/* Bottom right corner (rotated) */}
-            <div className={cn('absolute bottom-1 right-1.5 flex flex-col items-center leading-none rotate-180', colorClass)}>
+            <div className={cn(
+                'absolute flex flex-col items-center leading-none rotate-180',
+                size === 'xs' ? 'bottom-0.5 right-0.5' : 'bottom-1 right-1.5',
+                colorClass
+            )}>
                 <span className="font-bold">{card.rank}</span>
-                <span className={cn(suitSize[size], '-mt-1')}>{symbol}</span>
+                <span className={cn(suitSize[size], size === 'xs' ? '-mt-0.5' : '-mt-1')}>{symbol}</span>
             </div>
         </div>
     );
@@ -113,12 +134,13 @@ interface CardHandProps {
     cards: CardState[];
     overlap?: boolean;
     className?: string;
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'xs' | 'sm' | 'md' | 'lg';
     animate?: boolean;
 }
 
 export function CardHand({ cards, overlap = true, className, size = 'md', animate = false }: CardHandProps) {
     const overlapSize = {
+        xs: '-ml-5',
         sm: '-ml-8',
         md: '-ml-10',
         lg: '-ml-12',

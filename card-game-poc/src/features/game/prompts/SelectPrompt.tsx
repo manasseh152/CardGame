@@ -9,9 +9,10 @@ interface SelectPromptProps {
     onSubmit: (value: string) => void;
     onCancel: () => void;
     className?: string;
+    compact?: boolean;
 }
 
-export function SelectPrompt({ prompt, onSubmit, onCancel, className }: SelectPromptProps) {
+export function SelectPrompt({ prompt, onSubmit, onCancel, className, compact = false }: SelectPromptProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -41,14 +42,20 @@ export function SelectPrompt({ prompt, onSubmit, onCancel, className }: SelectPr
         }
     }, []);
 
+    // For compact mode with few options, use horizontal layout
+    const useHorizontalLayout = compact && prompt.options.length <= 4;
+
     return (
         <div 
             ref={containerRef}
             onKeyDown={handleKeyDown}
-            className={cn("space-y-4", className)}
+            className={cn(compact ? "space-y-2" : "space-y-4", className)}
         >
-            <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground/90">
+            <div className="flex items-center justify-between gap-2">
+                <label className={cn(
+                    "font-medium text-foreground/90",
+                    compact ? "text-xs" : "text-sm"
+                )}>
                     {prompt.message}
                 </label>
                 <Button
@@ -56,12 +63,15 @@ export function SelectPrompt({ prompt, onSubmit, onCancel, className }: SelectPr
                     variant="ghost"
                     size="icon-sm"
                     onClick={onCancel}
-                    className="text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground shrink-0"
                 >
                     <X className="size-4" />
                 </Button>
             </div>
-            <div className="grid gap-2">
+            <div className={cn(
+                "grid gap-2",
+                useHorizontalLayout && "grid-cols-2 sm:flex sm:flex-wrap"
+            )}>
                 {prompt.options.map((option, index) => (
                     <button
                         key={option.value}
@@ -69,24 +79,34 @@ export function SelectPrompt({ prompt, onSubmit, onCancel, className }: SelectPr
                         onClick={() => onSubmit(option.value)}
                         onKeyDown={(e) => handleOptionKeyDown(e, index)}
                         className={cn(
-                            "group flex items-center justify-between gap-3 w-full",
-                            "px-4 py-3 rounded-lg text-left",
+                            "group flex items-center justify-between gap-2 w-full",
+                            "rounded-lg text-left",
                             "bg-white/5 hover:bg-emerald-600/20 border border-white/10 hover:border-emerald-500/40",
                             "transition-all duration-200",
-                            "focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50"
+                            "focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50",
+                            compact ? "px-3 py-2" : "px-4 py-3",
+                            useHorizontalLayout && "sm:flex-1 sm:min-w-fit sm:justify-center"
                         )}
                     >
-                        <div className="flex-1 min-w-0">
-                            <div className="font-medium text-foreground/90 group-hover:text-emerald-100 transition-colors">
+                        <div className={cn(
+                            "min-w-0",
+                            useHorizontalLayout ? "text-center flex-1" : "flex-1"
+                        )}>
+                            <div className={cn(
+                                "font-medium text-foreground/90 group-hover:text-emerald-100 transition-colors",
+                                compact && "text-sm"
+                            )}>
                                 {option.label}
                             </div>
-                            {option.hint && (
+                            {option.hint && !compact && (
                                 <div className="text-xs text-muted-foreground mt-0.5">
                                     {option.hint}
                                 </div>
                             )}
                         </div>
-                        <ChevronRight className="size-4 text-muted-foreground group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                        {!useHorizontalLayout && (
+                            <ChevronRight className="size-4 text-muted-foreground group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                        )}
                     </button>
                 ))}
             </div>

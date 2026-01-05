@@ -1,11 +1,11 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SpinnerOverlay } from '@/components/SpinnerOverlay';
 import { GameTable, EmptyTable, PromptPanel } from '@/features/game';
 import { useWebSocketContext } from '@/context';
-import { LogOut, Users } from 'lucide-react';
+import { LogOut, Users, ChevronUp, ChevronDown, X } from 'lucide-react';
 
 function GameRoute() {
     const { roomId } = Route.useParams();
@@ -23,6 +23,8 @@ function GameRoute() {
         availableGames,
         requestGameList,
     } = useWebSocketContext();
+
+    const [showMobileStats, setShowMobileStats] = useState(false);
 
     const isConnected = connectionState === 'connected';
     
@@ -79,10 +81,64 @@ function GameRoute() {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="flex flex-col lg:grid lg:grid-cols-4 gap-3 lg:gap-6 h-full min-h-0">
+            {/* Mobile Header Bar */}
+            <div className="lg:hidden flex items-center justify-between px-1 py-2 bg-slate-900/40 rounded-lg border border-white/5">
+                <div className="flex items-center gap-2">
+                    <span className={`size-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
+                    <span className="text-lg">{gameIcon}</span>
+                    <span className="text-sm font-medium text-white truncate max-w-[120px]">
+                        {gameInfo?.name || 'Game'}
+                    </span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowMobileStats(!showMobileStats)}
+                        className="flex items-center gap-1 text-xs text-muted-foreground px-2 py-1 rounded bg-white/5"
+                    >
+                        <Users className="size-3" />
+                        <span>{gameState?.players.length || 0}</span>
+                        {showMobileStats ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                    </button>
+                    <button
+                        onClick={leaveRoom}
+                        className="p-1.5 text-muted-foreground hover:text-red-400 transition-colors"
+                        aria-label="Leave room"
+                    >
+                        <LogOut className="size-4" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Mobile Stats Drawer */}
+            {showMobileStats && gameState && gameState.players.length > 0 && (
+                <div className="lg:hidden bg-slate-900/60 border border-white/10 rounded-lg p-3 animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs uppercase tracking-wider text-muted-foreground">Player Stats</span>
+                        <button onClick={() => setShowMobileStats(false)} className="p-1 text-muted-foreground">
+                            <X className="size-3" />
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        {gameState.players.map((player) => (
+                            <div key={player.id} className="flex items-center justify-between bg-white/5 rounded px-2 py-1.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <span className="text-xs text-white/80 truncate">{player.name}</span>
+                                    {player.isCurrent && (
+                                        <span className="size-1.5 rounded-full bg-amber-400 shrink-0" />
+                                    )}
+                                </div>
+                                <span className="text-xs text-amber-400 shrink-0">${player.chips}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Game Table Panel */}
-            <Card className="lg:col-span-3 bg-slate-900/60 border-white/10 backdrop-blur-sm overflow-hidden flex flex-col">
-                <CardHeader className="border-b border-white/10 py-4">
+            <Card className="lg:col-span-3 bg-slate-900/60 border-white/10 backdrop-blur-sm overflow-hidden flex flex-col flex-1 min-h-0">
+                {/* Desktop Header */}
+                <CardHeader className="hidden lg:block border-b border-white/10 py-4">
                     <CardTitle className="text-base font-semibold flex items-center gap-3">
                         <span className={`size-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
                         <span className="text-xl">{gameIcon}</span>
@@ -101,7 +157,7 @@ function GameRoute() {
                         )}
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 p-4 min-h-[500px]">
+                <CardContent className="flex-1 p-2 sm:p-4 min-h-[280px] lg:min-h-[500px]">
                     {gameState ? (
                         <GameTable gameState={gameState} className="h-full" />
                     ) : (
@@ -110,8 +166,22 @@ function GameRoute() {
                 </CardContent>
             </Card>
 
-            {/* Control Panel */}
-            <div className="flex flex-col gap-4">
+            {/* Mobile Prompt Panel - Fixed at bottom */}
+            <div className="lg:hidden sticky bottom-0 -mx-4 px-4 pb-4 pt-2 bg-gradient-to-t from-background via-background to-transparent">
+                <Card className="bg-slate-900/95 border-white/10 backdrop-blur-md shadow-xl">
+                    <CardContent className="p-3">
+                        <PromptPanel
+                            prompt={currentPrompt}
+                            onSubmit={sendResponse}
+                            onCancel={sendCancel}
+                            compact
+                        />
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Desktop Control Panel */}
+            <div className="hidden lg:flex flex-col gap-4">
                 {/* Room Info */}
                 <Card className="bg-slate-900/60 border-white/10 backdrop-blur-sm">
                     <CardContent className="py-4">
