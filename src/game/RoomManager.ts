@@ -3,6 +3,7 @@
  * 
  * Manages multiple concurrent game rooms with player tracking,
  * ready state, and game lifecycle management.
+ * Supports multiple game types through the GameRegistry.
  */
 
 import type { 
@@ -23,8 +24,9 @@ import type {
     RoomCreateMessage,
     ClientConnection,
 } from '../adapters/MultiplayerAdapter';
-import { BlackjackGame } from './BlackjackGame';
 import type { RoomIOAdapter } from '../adapters/MultiplayerAdapter';
+import type { GameType, MultiplayerGame, GameConfig } from './Game';
+import { gameRegistry } from './GameRegistry';
 
 // ============================================================================
 // Room State
@@ -44,7 +46,11 @@ export interface GameRoom {
     players: Map<PlayerId, RoomPlayer>;
     hostPlayerId: PlayerId;
     isPlaying: boolean;
-    game?: BlackjackGame;
+    /** The type of game this room is playing */
+    gameType: GameType;
+    /** The active game instance (when playing) */
+    game?: MultiplayerGame;
+    /** The room IO adapter (when playing) */
     adapter?: RoomIOAdapter;
 }
 
@@ -77,6 +83,10 @@ export class RoomManager {
 
             onRoomListRequested: (sessionId) => {
                 this.sendRoomList(sessionId);
+            },
+
+            onGameListRequested: (sessionId) => {
+                this.sendGameList(sessionId);
             },
 
             onRoomCreate: (sessionId, settings) => {
@@ -121,6 +131,7 @@ export class RoomManager {
                     maxPlayers: room.identity.maxPlayers,
                     isPrivate: false,
                     isPlaying: room.isPlaying,
+                    gameType: room.gameType,
                 });
             }
         }
@@ -131,6 +142,11 @@ export class RoomManager {
     private sendRoomList(sessionId: SessionId): void {
         const rooms = this.getPublicRoomList();
         this.multiplayerAdapter.sendRoomList(sessionId, rooms);
+    }
+
+    private sendGameList(sessionId: SessionId): void {
+        const games = gameRegistry.getAvailableGames();
+        this.multiplayerAdapter.sendGameList(sessionId, games);
     }
 
     // ========================================================================
@@ -150,9 +166,24 @@ export class RoomManager {
             return null;
         }
 
+        // Get and validate game type (default to blackjack)
+        const gameType: GameType = (settings.gameType as GameType) ?? 'blackjack';
+        const gameFactory = gameRegistry.getFactory(gameType);
+        
+        if (!gameFactory) {
+            this.multiplayerAdapter.sendRoomError(sessionId, `Unknown game type: ${gameType}`);
+            return null;
+        }
+
+        // Validate max players against game's limits
+        const maxPlayers = Math.min(
+            settings.maxPlayers ?? gameFactory.metadata.maxPlayers,
+            gameFactory.metadata.maxPlayers
+        );
+
         // Create room identity
         const roomIdentity = createRoomIdentity(settings.name || `${connection.playerName}'s Room`, {
-            maxPlayers: settings.maxPlayers ?? 6,
+            maxPlayers,
             settings: {
                 isPrivate: settings.isPrivate ?? false,
                 minBet: settings.minBet ?? 10,
@@ -171,12 +202,13 @@ export class RoomManager {
             chips: this.defaultChips,
         };
 
-        // Create room
+        // Create room with game type
         const room: GameRoom = {
             identity: roomIdentity,
             players: new Map([[connection.playerId, roomPlayer]]),
             hostPlayerId: connection.playerId,
             isPlaying: false,
+            gameType,
         };
 
         this.rooms.set(roomIdentity.id, room);
@@ -191,6 +223,7 @@ export class RoomManager {
             maxPlayers: roomIdentity.maxPlayers,
             isPrivate: roomIdentity.settings.isPrivate,
             isPlaying: false,
+            gameType,
         }, true);
 
         // Broadcast player list
@@ -264,6 +297,7 @@ export class RoomManager {
             maxPlayers: room.identity.maxPlayers,
             isPrivate: room.identity.settings.isPrivate,
             isPlaying: room.isPlaying,
+            gameType: room.gameType,
         }, false);
 
         // Broadcast updated player list
@@ -355,54 +389,24 @@ export class RoomManager {
 
     /**
      * Handle a player leaving during an active game.
-     * Removes them from the game and advances to next player if needed.
+     * Delegates to the game's handlePlayerLeft method.
      */
     private handlePlayerLeftDuringGame(room: GameRoom, playerId: PlayerId, playerName: string): void {
         const game = room.game;
         if (!game) return;
-
-        // Find the player in the game by name
-        const gamePlayerIndex = game.players.findIndex(p => p.name === playerName);
-
-        if (gamePlayerIndex === -1) return;
-
-        const gamePlayer = game.players[gamePlayerIndex]!;
-        const wasCurrentPlayer = game.currentPlayerIndex === gamePlayerIndex;
-
-        // Mark player as bust/out so they're skipped
-        gamePlayer.status = 'bust';
-        gamePlayer.chips = 0;
 
         // Log the disconnection to remaining players
         if (room.adapter) {
             room.adapter.log('warning', `${playerName} has left the game.`);
         }
 
-        // Remove the player from the game's player array
-        game.players.splice(gamePlayerIndex, 1);
-
-        // Adjust currentPlayerIndex if needed
-        if (game.currentPlayerIndex > gamePlayerIndex) {
-            game.currentPlayerIndex--;
-        } else if (wasCurrentPlayer) {
-            // If it was the current player's turn, they will be skipped
-            // The currentPlayerIndex now points to the next player (due to splice)
-            // If we're past the end, move to dealer turn
-            if (game.currentPlayerIndex >= game.players.length) {
-                game.phase = 'dealer-turn';
-            }
-        }
+        // Delegate to the game to handle the player leaving
+        const canContinue = game.handlePlayerLeft(playerId, playerName);
 
         // If no players left, end the game
-        if (game.players.length === 0) {
+        if (!canContinue) {
             game.isRunning = false;
             this.endGame(room.identity.id);
-            return;
-        }
-
-        // Broadcast updated game state
-        if (room.adapter?.gameState) {
-            room.adapter.gameState(game['buildGameState']());
         }
     }
 
@@ -495,9 +499,19 @@ export class RoomManager {
             return false;
         }
 
+        // Get game factory from registry
+        const gameFactory = gameRegistry.getFactory(room.gameType);
+        if (!gameFactory) {
+            this.multiplayerAdapter.sendRoomError(sessionId, `Unknown game type: ${room.gameType}`);
+            return false;
+        }
+
         // Check minimum players
-        if (room.players.size < 1) {
-            this.multiplayerAdapter.sendRoomError(sessionId, 'Need at least 1 player');
+        if (room.players.size < gameFactory.metadata.minPlayers) {
+            this.multiplayerAdapter.sendRoomError(
+                sessionId, 
+                `Need at least ${gameFactory.metadata.minPlayers} player(s) for ${gameFactory.metadata.name}`
+            );
             return false;
         }
 
@@ -517,11 +531,14 @@ export class RoomManager {
             playerId: p.playerId,
         }));
 
-        // Create and start game
-        room.game = new BlackjackGame(room.adapter, {
+        // Create game config
+        const gameConfig: GameConfig = {
             players: playerProfiles,
             decks: room.identity.settings.deckCount,
-        });
+        };
+
+        // Create game using factory
+        room.game = gameFactory.create(room.adapter, gameConfig);
 
         // Run the game in background
         this.runGameLoop(room).catch(err => {
@@ -542,268 +559,14 @@ export class RoomManager {
                 playerMap.set(player.name, player.playerId);
             }
 
-            // Custom game loop that routes prompts to correct players
-            await this.runMultiplayerGame(room, playerMap);
+            // Provide a getter for the current host (may change if host leaves)
+            const getHostPlayerId = () => room.hostPlayerId;
+
+            // Run the game's multiplayer loop
+            await room.game.runMultiplayer(playerMap, room.adapter, getHostPlayerId);
         } finally {
             this.endGame(room.identity.id);
         }
-    }
-
-    private async runMultiplayerGame(
-        room: GameRoom, 
-        playerMap: Map<string, PlayerId>
-    ): Promise<void> {
-        if (!room.game || !room.adapter) return;
-
-        const game = room.game;
-        const adapter = room.adapter;
-
-        game.isRunning = true;
-        await adapter.log('info', 'Welcome to Blackjack! Try to beat the dealer without going over 21.');
-
-        while (game.isRunning) {
-            // Betting phase
-            if (game.phase === 'betting') {
-                // Iterate with index to handle removals
-                let i = 0;
-                while (i < game.players.length && game.isRunning) {
-                    const player = game.players[i]!;
-                    const playerId = playerMap.get(player.name);
-                    if (playerId) {
-                        adapter.setCurrentPlayer(playerId);
-                    }
-                    
-                    // Send current state to all players
-                    if (adapter.gameState) {
-                        await adapter.gameState(game['buildGameState']());
-                    }
-
-                    const betResult = await adapter.text({
-                        message: `${player.name}, enter your bet (chips: ${player.chips}):`,
-                        placeholder: '50',
-                        validate: (value) => {
-                            const amount = parseInt(value);
-                            if (isNaN(amount) || amount <= 0) return 'Must be a positive number';
-                            if (amount > player.chips) return `You only have ${player.chips} chips`;
-                            return undefined;
-                        },
-                    });
-
-                    if (betResult.cancelled) {
-                        // Check if player was removed (disconnect)
-                        const playerStillExists = game.players.includes(player);
-                        if (!playerStillExists) {
-                            // Player disconnected, continue with remaining players
-                            if (game.players.length === 0) {
-                                game.isRunning = false;
-                                break;
-                            }
-                            // Don't increment i since array shifted
-                            continue;
-                        }
-                        // Player quit voluntarily
-                        game.isRunning = false;
-                        break;
-                    }
-
-                    game.placeBet(player, parseInt(betResult.value));
-                    i++;
-                }
-
-                if (!game.isRunning || game.players.length === 0) break;
-                game.dealInitialCards();
-            }
-
-            // Player turns
-            while (game.phase === 'player-turn' && game.isRunning) {
-                const player = game.getCurrentPlayer();
-                if (!player) {
-                    game.phase = 'dealer-turn';
-                    break;
-                }
-
-                // Check if there are still players in the game
-                if (game.players.length === 0) {
-                    game.isRunning = false;
-                    break;
-                }
-
-                const playerId = playerMap.get(player.name);
-                if (playerId) {
-                    adapter.setCurrentPlayer(playerId);
-                }
-
-                // Broadcast state
-                if (adapter.gameState) {
-                    await adapter.gameState(game['buildGameState']());
-                }
-
-                // Build action options
-                const actionOptions: { value: string; label: string; hint: string }[] = [
-                    { value: 'hit', label: 'Hit', hint: 'Draw another card' },
-                    { value: 'stand', label: 'Stand', hint: 'Keep current hand' },
-                ];
-
-                if (player.canDoubleDown()) {
-                    actionOptions.push({ value: 'double', label: 'Double Down', hint: 'Double bet, get one card' });
-                }
-                if (player.canSplit()) {
-                    actionOptions.push({ value: 'split', label: 'Split', hint: 'Split pair into two hands' });
-                }
-                actionOptions.push({ value: 'quit', label: 'Quit', hint: 'Exit the game' });
-
-                const actionResult = await adapter.select({
-                    message: `${player.name}'s turn (Hand: ${game.calculateHandValue(player.hand)}):`,
-                    options: actionOptions,
-                });
-
-                if (actionResult.cancelled) {
-                    // Check if this player was removed from the game (disconnect)
-                    // If so, continue with the next player instead of ending the game
-                    const playerStillExists = game.players.includes(player);
-                    if (!playerStillExists) {
-                        // Player was removed due to disconnect, handled by handlePlayerLeftDuringGame
-                        // Check if there are players left
-                        if (game.players.length === 0) {
-                            game.isRunning = false;
-                            break;
-                        }
-                        // Continue with the game (next player is already set)
-                        continue;
-                    }
-                    // Player cancelled voluntarily (quit)
-                    game.isRunning = false;
-                    break;
-                }
-
-                switch (actionResult.value) {
-                    case 'hit':
-                        game.playerHit(player);
-                        if (player.status !== 'playing') {
-                            game.nextPlayer();
-                            if (game.phase === 'player-turn' && !game.getCurrentPlayer()) {
-                                game.phase = 'dealer-turn';
-                            }
-                        }
-                        break;
-                    case 'stand':
-                        game.playerStand(player);
-                        game.nextPlayer();
-                        if (game.phase === 'player-turn' && !game.getCurrentPlayer()) {
-                            game.phase = 'dealer-turn';
-                        }
-                        break;
-                    case 'double':
-                        game.playerDoubleDown(player);
-                        game.nextPlayer();
-                        if (game.phase === 'player-turn' && !game.getCurrentPlayer()) {
-                            game.phase = 'dealer-turn';
-                        }
-                        break;
-                    case 'split':
-                        game.playerSplit(player);
-                        break;
-                    case 'quit':
-                        game.isRunning = false;
-                        break;
-                }
-            }
-
-            if (!game.isRunning) break;
-
-            // Dealer turn
-            if (game.phase === 'dealer-turn') {
-                const spinner = adapter.spinner();
-                spinner.start('Dealer is playing...');
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                game.dealerPlay();
-                spinner.stop('Dealer finished.');
-            }
-
-            // Round over
-            if (game.phase === 'round-over') {
-                const payouts = game.resolveRound();
-                
-                if (adapter.gameState) {
-                    await adapter.gameState(game['buildGameState']());
-                }
-
-                // Format results
-                const dealerResult = `Dealer: ${game.dealer.status}`;
-                const results = game.players
-                    .map((player) => {
-                        const payout = payouts.get(player) ?? 0;
-                        const bet = player.bet;
-                        const net = payout - bet;
-                        const result = net > 0 ? `+$${net}` : net < 0 ? `-$${Math.abs(net)}` : 'Push';
-                        return `${player.name}: ${result} — Now has $${player.chips} chips`;
-                    })
-                    .join('\n');
-
-                await adapter.note(`${dealerResult}\n${'-'.repeat(40)}\n${results}`, 'Round Results');
-
-                // Check if there are still players in the game
-                if (game.players.length === 0) {
-                    await adapter.log('warning', 'All players have left!');
-                    break;
-                }
-
-                // Check if any players have chips
-                const activePlayers = game.players.filter(pl => pl.chips > 0);
-                if (activePlayers.length === 0) {
-                    await adapter.log('warning', 'All players are out of chips!');
-                    break;
-                }
-
-                // Ask host if they want to continue (use current room host)
-                let hostPlayerId = room.hostPlayerId;
-                adapter.setCurrentPlayer(hostPlayerId);
-
-                const continueResult = await adapter.select({
-                    message: 'What next?',
-                    options: [
-                        { value: 'newround', label: 'New Round', hint: 'Play another hand' },
-                        { value: 'quit', label: 'Quit', hint: 'End the game' },
-                    ],
-                });
-
-                if (continueResult.cancelled) {
-                    // Check if game still has players (host may have disconnected)
-                    if (game.players.length === 0) {
-                        break;
-                    }
-                    // If host disconnected, end the round and let remaining players decide
-                    // For now, continue to a new round if there are still players
-                    await adapter.log('info', 'Host left. Starting new round...');
-                }
-
-                if (!continueResult.cancelled && continueResult.value === 'quit') {
-                    break;
-                }
-
-                // Reset for new round
-                game.deck.reset();
-                game.deck.shuffle();
-                game.phase = 'betting';
-                game.currentPlayerIndex = 0;
-                for (const player of game.players) {
-                    player.reset();
-                }
-                game.dealer.reset();
-            }
-        }
-
-        // Game ended
-        const standings = game.players
-            .sort((a, b) => b.chips - a.chips)
-            .map((player, i) => {
-                const medal = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
-                return `${medal} ${player.name}: $${player.chips} chips`;
-            })
-            .join('\n');
-
-        await adapter.note(standings, 'Final Standings');
-        await adapter.outro('Thanks for playing!');
     }
 
     private endGame(roomId: RoomId): void {
