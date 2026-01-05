@@ -1,10 +1,11 @@
-# Blackjack Card Game
+# Card Games
 
-A multiplayer Blackjack game built with Bun, featuring a modular adapter system for multiple I/O interfaces and real-time WebSocket multiplayer support.
+A multiplayer card game platform built with Bun, featuring multiple game types, a modular adapter system for multiple I/O interfaces, and real-time WebSocket multiplayer support.
 
 ## Features
 
-- **Full Blackjack Game**: Complete implementation with betting, splitting, doubling down, and dealer AI
+- **Multiple Games**: Blackjack, Ride the Bus, and more card games
+- **Game Browser**: Browse games by category (Casino, Drinking, Party)
 - **Multiplayer Support**: Multiple players can connect from different devices
 - **Multi-Room System**: Create public/private rooms, join via lobby or room codes
 - **Modular I/O Adapters**: Console (Clack), JSON Lines, WebSocket, and Composite adapters
@@ -70,7 +71,7 @@ src/
 ├── index.ts                     # Console mode entry point
 └── multiplayer.ts               # Multiplayer server entry point
 
-blackjack-poc-ws/           # React frontend (see its README)
+card-game-poc/              # React frontend (see its README)
 ```
 
 ## Adapter System
