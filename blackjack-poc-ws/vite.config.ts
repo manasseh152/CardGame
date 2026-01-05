@@ -19,4 +19,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    allowedHosts: process.env.VITE_ALLOWED_HOSTS 
+      ? process.env.VITE_ALLOWED_HOSTS.split(',').map(h => h.trim())
+      : ['vite.bitbreeze.nl', 'multiplayer.bitbreeze.nl', 'localhost', '127.0.0.1'],
+    host: process.env.VITE_HOST || '0.0.0.0',
+    port: process.env.VITE_PORT ? parseInt(process.env.VITE_PORT, 10) : 5173,
+  },
 })

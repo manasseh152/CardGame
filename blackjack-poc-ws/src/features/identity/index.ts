@@ -1,2 +1,0 @@
-export { IdentifyView } from './IdentifyView';
-

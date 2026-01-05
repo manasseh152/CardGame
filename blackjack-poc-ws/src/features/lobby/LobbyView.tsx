@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { 
     Plus, 
     Hash, 
@@ -22,20 +23,36 @@ import {
     Unlock, 
     Play,
 } from 'lucide-react';
-import type { RoomInfo } from '@/types';
+import type { RoomInfo, GameMetadata, GameType, GameCategory } from '@/types';
+
+/** Map of category names to display labels */
+const CATEGORY_LABELS: Record<GameCategory, string> = {
+    casino: 'Casino',
+    drinking: 'Drinking',
+    party: 'Party',
+};
+
+/** Get the icon for a game, with fallback */
+function getGameIcon(game: GameMetadata): string {
+    return game.icon || '🎮';
+}
 
 interface LobbyViewProps {
     playerName: string;
     availableRooms: RoomInfo[];
+    availableGames: GameMetadata[];
     onRequestRoomList: () => void;
-    onCreateRoom: (options: { name?: string; isPrivate?: boolean; maxPlayers?: number }) => void;
+    onRequestGameList: () => void;
+    onCreateRoom: (options: { name?: string; isPrivate?: boolean; maxPlayers?: number; gameType?: GameType }) => void;
     onJoinRoom: (roomId: string) => void;
 }
 
 export function LobbyView({
     playerName,
     availableRooms,
+    availableGames,
     onRequestRoomList,
+    onRequestGameList,
     onCreateRoom,
     onJoinRoom,
 }: LobbyViewProps) {
@@ -47,17 +64,38 @@ export function LobbyView({
     const [roomName, setRoomName] = useState('');
     const [isPrivate, setIsPrivate] = useState(false);
     const [maxPlayers, setMaxPlayers] = useState(6);
+    const [selectedGameType, setSelectedGameType] = useState<GameType>('blackjack');
     
     // Join room form state
     const [roomCode, setRoomCode] = useState('');
     const [joinError, setJoinError] = useState<string | null>(null);
 
-    // Auto-refresh room list
+    // Auto-refresh room list and fetch games on mount
     useEffect(() => {
         onRequestRoomList();
+        onRequestGameList();
         const interval = setInterval(onRequestRoomList, 5000);
         return () => clearInterval(interval);
-    }, [onRequestRoomList]);
+    }, [onRequestRoomList, onRequestGameList]);
+
+    // Group games by category
+    const gamesByCategory = availableGames.reduce((acc, game) => {
+        if (!acc[game.category]) {
+            acc[game.category] = [];
+        }
+        acc[game.category].push(game);
+        return acc;
+    }, {} as Record<GameCategory, GameMetadata[]>);
+
+    // Get selected game metadata
+    const selectedGame = availableGames.find(g => g.type === selectedGameType);
+
+    // Update max players when game changes
+    useEffect(() => {
+        if (selectedGame) {
+            setMaxPlayers(selectedGame.maxPlayers);
+        }
+    }, [selectedGame]);
 
     const handleRefresh = useCallback(() => {
         setIsRefreshing(true);
@@ -70,12 +108,13 @@ export function LobbyView({
             name: roomName || undefined,
             isPrivate,
             maxPlayers,
+            gameType: selectedGameType,
         });
         setIsCreateDialogOpen(false);
         setRoomName('');
         setIsPrivate(false);
-        setMaxPlayers(6);
-    }, [roomName, isPrivate, maxPlayers, onCreateRoom]);
+        setMaxPlayers(selectedGame?.maxPlayers ?? 6);
+    }, [roomName, isPrivate, maxPlayers, selectedGameType, selectedGame, onCreateRoom]);
 
     const handleJoinByCode = useCallback(() => {
         const code = roomCode.trim().toUpperCase();
@@ -160,24 +199,26 @@ export function LobbyView({
                         </div>
                     ) : (
                         <div className="divide-y divide-white/5">
-                            {availableRooms.map((room) => (
+                            {availableRooms.map((room) => {
+                                const roomGame = availableGames.find(g => g.type === room.gameType);
+                                const roomGameIcon = roomGame?.icon || '🎮';
+                                return (
                                 <div
                                     key={room.id}
                                     className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className="size-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                                            {room.isPrivate ? (
-                                                <Lock className="size-5 text-emerald-400" />
-                                            ) : (
-                                                <Unlock className="size-5 text-emerald-400" />
-                                            )}
+                                        <div className="size-10 rounded-lg bg-emerald-500/20 flex items-center justify-center text-xl">
+                                            {roomGameIcon}
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <span className="font-medium text-white">
                                                     {room.name}
                                                 </span>
+                                                {room.isPrivate && (
+                                                    <Lock className="size-3 text-muted-foreground" />
+                                                )}
                                                 {room.isPlaying && (
                                                     <Badge variant="outline" className="text-amber-400 border-amber-400/30">
                                                         In Game
@@ -185,8 +226,14 @@ export function LobbyView({
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                {roomGame && (
+                                                    <>
+                                                        <span className="text-xs">{roomGame.name}</span>
+                                                        <span className="text-white/20">•</span>
+                                                    </>
+                                                )}
                                                 <Users className="size-3" />
-                                                <span>{room.playerCount}/{room.maxPlayers} players</span>
+                                                <span>{room.playerCount}/{room.maxPlayers}</span>
                                                 <span className="text-white/20">•</span>
                                                 <span className="font-mono text-xs">{room.id}</span>
                                             </div>
@@ -202,7 +249,7 @@ export function LobbyView({
                                         Join
                                     </Button>
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     )}
                 </CardContent>
@@ -210,14 +257,67 @@ export function LobbyView({
 
             {/* Create Room Dialog */}
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogContent className="bg-slate-900 border-white/10">
+                <DialogContent className="bg-slate-900 border-white/10 max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Create Room</DialogTitle>
                         <DialogDescription>
-                            Set up your game room
+                            Choose a game and set up your room
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
+                    <div className="space-y-5 py-4">
+                        {/* Game Type Selector */}
+                        <div className="space-y-3">
+                            <Label>Select Game</Label>
+                            <RadioGroup
+                                value={selectedGameType}
+                                onValueChange={(value) => setSelectedGameType(value as GameType)}
+                                className="space-y-3"
+                            >
+                                {Object.entries(gamesByCategory).map(([category, games]) => (
+                                    <div key={category} className="space-y-2">
+                                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                            {CATEGORY_LABELS[category as GameCategory]}
+                                        </div>
+                                        <div className="space-y-2">
+                                            {games.map((game) => (
+                                                <label
+                                                    key={game.type}
+                                                    htmlFor={`game-${game.type}`}
+                                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                                                        selectedGameType === game.type
+                                                            ? 'border-emerald-500 bg-emerald-500/10'
+                                                            : 'border-white/10 hover:border-white/20 bg-black/20'
+                                                    }`}
+                                                >
+                                                    <RadioGroupItem
+                                                        value={game.type}
+                                                        id={`game-${game.type}`}
+                                                        className="border-white/30"
+                                                    />
+                                                    <span className="text-2xl">{getGameIcon(game)}</span>
+                                                    <div className="flex-1">
+                                                        <div className="font-medium text-white">{game.name}</div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {game.description}
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground/60 mt-1">
+                                                            {game.minPlayers}-{game.maxPlayers} players
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                                {availableGames.length === 0 && (
+                                    <div className="text-center py-4 text-muted-foreground">
+                                        Loading games...
+                                    </div>
+                                )}
+                            </RadioGroup>
+                        </div>
+
+                        {/* Room Settings */}
                         <div className="space-y-2">
                             <Label htmlFor="roomName">Room Name (optional)</Label>
                             <Input
@@ -233,8 +333,8 @@ export function LobbyView({
                             <Input
                                 id="maxPlayers"
                                 type="number"
-                                min={1}
-                                max={8}
+                                min={selectedGame?.minPlayers ?? 1}
+                                max={selectedGame?.maxPlayers ?? 8}
                                 value={maxPlayers}
                                 onChange={(e) => setMaxPlayers(parseInt(e.target.value) || 6)}
                                 className="bg-black/30 border-white/20"
@@ -261,6 +361,7 @@ export function LobbyView({
                         </Button>
                         <Button
                             onClick={handleCreateRoom}
+                            disabled={availableGames.length === 0}
                             className="bg-emerald-600 hover:bg-emerald-500"
                         >
                             Create Room

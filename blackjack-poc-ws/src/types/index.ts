@@ -87,6 +87,32 @@ export interface WarningMessage extends ServerMessage {
 }
 
 // ============================================================================
+// Game Types
+// ============================================================================
+
+/** Categories for organizing games */
+export type GameCategory = 'casino' | 'drinking' | 'party';
+
+/** Unique identifier for each game type */
+export type GameType = 'blackjack' | 'ride-the-bus';
+
+/** Metadata about a game type */
+export interface GameMetadata {
+    type: GameType;
+    name: string;
+    category: GameCategory;
+    description: string;
+    minPlayers: number;
+    maxPlayers: number;
+    icon?: string;
+}
+
+export interface GameListMessage extends ServerMessage {
+    type: 'game_list';
+    games: GameMetadata[];
+}
+
+// ============================================================================
 // Room Types
 // ============================================================================
 
@@ -97,6 +123,8 @@ export interface RoomInfo {
     maxPlayers: number;
     isPrivate: boolean;
     isPlaying: boolean;
+    /** The type of game this room is playing */
+    gameType?: GameType;
 }
 
 export interface RoomPlayerInfo {

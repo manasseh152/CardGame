@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { RoomInfo, RoomPlayerInfo, RoomJoinedMessage, RoomPlayersMessage } from '@/types';
+import type { RoomInfo, RoomPlayerInfo, RoomJoinedMessage, RoomPlayersMessage, GameMetadata, GameType } from '@/types';
 
 export interface UseRoomReturn {
     currentRoom: RoomInfo | null;
@@ -7,11 +7,14 @@ export interface UseRoomReturn {
     isHost: boolean;
     isReady: boolean;
     availableRooms: RoomInfo[];
+    availableGames: GameMetadata[];
     requestRoomList: () => void;
+    requestGameList: () => void;
     createRoom: (options?: {
         name?: string;
         isPrivate?: boolean;
         maxPlayers?: number;
+        gameType?: GameType;
     }) => void;
     joinRoom: (roomId: string) => void;
     leaveRoom: () => void;
@@ -29,15 +32,21 @@ export function useRoom(
     const [isHost, setIsHost] = useState(false);
     const [isReady, setIsReady] = useState(false);
     const [availableRooms, setAvailableRooms] = useState<RoomInfo[]>([]);
+    const [availableGames, setAvailableGames] = useState<GameMetadata[]>([]);
 
     const requestRoomList = useCallback(() => {
         send({ type: 'room_list' });
+    }, [send]);
+
+    const requestGameList = useCallback(() => {
+        send({ type: 'game_list' });
     }, [send]);
 
     const createRoom = useCallback((options?: {
         name?: string;
         isPrivate?: boolean;
         maxPlayers?: number;
+        gameType?: GameType;
     }) => {
         send({ 
             type: 'room_create',
@@ -68,6 +77,7 @@ export function useRoom(
         setIsHost(false);
         setIsReady(false);
         setAvailableRooms([]);
+        // Note: we don't reset availableGames as they're static
     }, []);
 
     const handleRoomJoined = useCallback((msg: RoomJoinedMessage) => {
@@ -91,7 +101,9 @@ export function useRoom(
         isHost,
         isReady,
         availableRooms,
+        availableGames,
         requestRoomList,
+        requestGameList,
         createRoom,
         joinRoom,
         leaveRoom,
@@ -102,10 +114,12 @@ export function useRoom(
         _handleRoomJoined: handleRoomJoined,
         _handleRoomPlayers: handleRoomPlayers,
         _setAvailableRooms: setAvailableRooms,
+        _setAvailableGames: setAvailableGames,
     } as UseRoomReturn & {
         _handleRoomJoined: (msg: RoomJoinedMessage) => void;
         _handleRoomPlayers: (msg: RoomPlayersMessage) => void;
         _setAvailableRooms: (rooms: RoomInfo[]) => void;
+        _setAvailableGames: (games: GameMetadata[]) => void;
     };
 }
 

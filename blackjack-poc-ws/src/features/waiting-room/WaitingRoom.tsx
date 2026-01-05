@@ -14,7 +14,7 @@ import {
     Unlock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { RoomInfo, RoomPlayerInfo } from '@/types';
+import type { RoomInfo, RoomPlayerInfo, GameMetadata } from '@/types';
 import { toast } from 'sonner';
 
 interface WaitingRoomProps {
@@ -23,6 +23,7 @@ interface WaitingRoomProps {
     currentPlayerId: string | null;
     isHost: boolean;
     isReady: boolean;
+    availableGames: GameMetadata[];
     onSetReady: (ready: boolean) => void;
     onStartGame: () => void;
     onLeaveRoom: () => void;
@@ -34,12 +35,17 @@ export function WaitingRoom({
     currentPlayerId,
     isHost,
     isReady,
+    availableGames,
     onSetReady,
     onStartGame,
     onLeaveRoom,
 }: WaitingRoomProps) {
     const allPlayersReady = players.length > 0 && players.every(p => p.isReady);
     const canStart = isHost && allPlayersReady && players.length >= 1;
+    
+    // Find the game metadata for this room
+    const gameInfo = availableGames.find(g => g.type === room.gameType);
+    const gameIcon = gameInfo?.icon || '🎮';
 
     const handleCopyCode = useCallback(() => {
         navigator.clipboard.writeText(room.id);
@@ -56,21 +62,35 @@ export function WaitingRoom({
             <Card className="bg-slate-900/80 border-white/10 backdrop-blur-sm">
                 <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                {room.isPrivate ? (
-                                    <Lock className="size-4 text-amber-400" />
-                                ) : (
-                                    <Unlock className="size-4 text-emerald-400" />
-                                )}
-                                <CardTitle className="text-xl text-white">
-                                    {room.name}
-                                </CardTitle>
+                        <div className="flex items-start gap-4">
+                            {/* Game Icon */}
+                            <div className="size-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/20 flex items-center justify-center text-3xl">
+                                {gameIcon}
                             </div>
-                            <CardDescription className="flex items-center gap-2">
-                                <Users className="size-3" />
-                                {players.length}/{room.maxPlayers} players
-                            </CardDescription>
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    {room.isPrivate && (
+                                        <Lock className="size-4 text-amber-400" />
+                                    )}
+                                    <CardTitle className="text-xl text-white">
+                                        {room.name}
+                                    </CardTitle>
+                                </div>
+                                {gameInfo && (
+                                    <div className="text-sm text-emerald-400 font-medium mb-1">
+                                        {gameInfo.name}
+                                    </div>
+                                )}
+                                <CardDescription className="flex items-center gap-2">
+                                    <Users className="size-3" />
+                                    {players.length}/{room.maxPlayers} players
+                                </CardDescription>
+                                {gameInfo && (
+                                    <p className="text-xs text-muted-foreground/70 mt-2 max-w-sm">
+                                        {gameInfo.description}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                         <div className="text-right">
                             <p className="text-xs text-muted-foreground mb-1">Room Code</p>

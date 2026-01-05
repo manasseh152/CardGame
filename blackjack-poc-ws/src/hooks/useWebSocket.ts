@@ -17,6 +17,7 @@ import type {
     RoomReadyToStartMessage,
     GameStartingMessage,
     GameEndedMessage,
+    GameListMessage,
     IntroMessage,
     OutroMessage,
     LogMessage,
@@ -47,9 +48,11 @@ export interface UseWebSocketReturn {
     isHost: boolean;
     isReady: boolean;
     availableRooms: ReturnType<typeof useRoom>['availableRooms'];
+    availableGames: ReturnType<typeof useRoom>['availableGames'];
     
     // Room actions
     requestRoomList: () => void;
+    requestGameList: () => void;
     createRoom: ReturnType<typeof useRoom>['createRoom'];
     joinRoom: ReturnType<typeof useRoom>['joinRoom'];
     leaveRoom: () => void;
@@ -110,6 +113,12 @@ export function useWebSocket(): UseWebSocketReturn {
             case 'room_list': {
                 const msg = data as RoomListMessage;
                 room._setAvailableRooms(msg.rooms);
+                break;
+            }
+
+            case 'game_list': {
+                const msg = data as GameListMessage;
+                room._setAvailableGames(msg.games);
                 break;
             }
 
@@ -272,9 +281,11 @@ export function useWebSocket(): UseWebSocketReturn {
         isHost: room.isHost,
         isReady: room.isReady,
         availableRooms: room.availableRooms,
+        availableGames: room.availableGames,
         
         // Room actions
         requestRoomList: room.requestRoomList,
+        requestGameList: room.requestGameList,
         createRoom: room.createRoom,
         joinRoom: room.joinRoom,
         leaveRoom: room.leaveRoom,
@@ -308,4 +319,7 @@ export type {
     CardState,
     PromptMessage,
     GameLogEntry,
+    GameMetadata,
+    GameCategory,
+    GameType,
 } from '@/types';
