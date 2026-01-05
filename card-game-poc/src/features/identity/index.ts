@@ -1,0 +1,2 @@
+export { IdentifyView } from './IdentifyView';
+

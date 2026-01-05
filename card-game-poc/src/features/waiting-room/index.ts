@@ -1,0 +1,2 @@
+export { WaitingRoom } from './WaitingRoom';
+
